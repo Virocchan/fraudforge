@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FraudForge — Autonomous Data Swarm</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #050a0e;
+    --surface: #0a1520;
+    --surface2: #0f1e2e;
+    --green: #00ff88;
+    --cyan: #00e5ff;
+    --red: #ff3b5c;
+    --yellow: #ffd600;
+    --text: #c8d8e8;
+    --dim: #4a6070;
+    --border: #1a3040;
+    --glow: 0 0 20px rgba(0,255,136,0.3);
+    --glow-red: 0 0 20px rgba(255,59,92,0.3);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Grid background */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+    background: rgba(5,10,14,0.9);
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon {
+    width: 36px; height: 36px;
+    border: 2px solid var(--green);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: var(--glow);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 10px rgba(0,255,136,0.3); }
+    50% { box-shadow: 0 0 25px rgba(0,255,136,0.7); }
+  }
+  .logo-text { font-family: 'Orbitron', monospace; font-size: 18px; font-weight: 900; color: var(--green); letter-spacing: 2px; }
+  .logo-sub { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--dim); letter-spacing: 3px; text-transform: uppercase; }
+  .track-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--cyan);
+    border: 1px solid var(--cyan);
+    padding: 4px 12px; border-radius: 2px;
+    letter-spacing: 2px;
+    background: rgba(0,229,255,0.05);
+  }
+
+  /* HERO */
+  .hero { padding: 60px 0 40px; text-align: center; }
+  .hero-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--green); letter-spacing: 4px;
+    margin-bottom: 16px;
+  }
+  .hero-tag::before { content: '> '; }
+  .hero h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 3px;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+  .hero h1 span { color: var(--green); }
+  .hero p {
+    color: var(--dim); font-size: 15px; max-width: 500px; margin: 0 auto 40px;
+    line-height: 1.7; font-weight: 300;
+  }
+
+  /* API KEY SECTION */
+  .api-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+  }
+  .api-section label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--cyan); letter-spacing: 2px;
+    display: block; margin-bottom: 10px;
+  }
+  .api-row { display: flex; gap: 10px; }
+  .api-row input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .api-row input:focus { border-color: var(--cyan); }
+  .api-row input::placeholder { color: var(--dim); }
+  .btn-save {
+    background: rgba(0,229,255,0.1);
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    padding: 10px 20px;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px; letter-spacing: 1px;
+    cursor: pointer; border-radius: 2px;
+    transition: all 0.2s;
+  }
+  .btn-save:hover { background: rgba(0,229,255,0.2); box-shadow: 0 0 15px rgba(0,229,255,0.3); }
+  .api-status { font-family: 'Share Tech Mono', monospace; font-size: 11px; margin-top: 8px; }
+  .api-status.ok { color: var(--green); }
+  .api-status.err { color: var(--red); }
+
+  /* UPLOAD ZONE */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 6px;
+    padding: 60px 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .upload-zone::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0,255,136,0.05) 0%, transparent 70%);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--green); }
+  .upload-zone:hover::before, .upload-zone.drag::before { opacity: 1; }
+  .upload-zone.drag { border-style: solid; box-shadow: var(--glow); }
+  .upload-icon { font-size: 48px; margin-bottom: 16px; filter: grayscale(0.5); }
+  .upload-title { font-family: 'Orbitron', monospace; font-size: 16px; color: #fff; margin-bottom: 8px; letter-spacing: 1px; }
+  .upload-sub { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--dim); }
+  .upload-sub span { color: var(--green); }
+  #file-input { display: none; }
+
+  /* FILE INFO */
+  .file-info {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--green);
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    align-items: center;
+    gap: 16px;
+    box-shadow: var(--glow);
+  }
+  .file-info.show { display: flex; }
+  .file-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; flex-shrink: 0; animation: pulse 1s infinite; }
+  .file-name { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--green); flex: 1; }
+  .file-meta { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--dim); }
+
+  /* ANALYZE BTN */
+  .btn-analyze {
+    width: 100%;
+    background: linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,255,136,0.05));
+    border: 1px solid var(--green);
+    color: var(--green);
+    padding: 18px;
+    font-family: 'Orbitron', monospace;
+    font-size: 14px; font-weight: 700; letter-spacing: 3px;
+    cursor: pointer; border-radius: 4px;
+    transition: all 0.3s;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    margin-bottom: 40px;
+  }
+  .btn-analyze:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(0,255,136,0.25), rgba(0,255,136,0.1));
+    box-shadow: var(--glow), inset 0 0 20px rgba(0,255,136,0.05);
+    transform: translateY(-1px);
+  }
+  .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-icon { font-size: 20px; }
+
+  /* LOADING */
+  .loading { display: none; text-align: center; padding: 60px 0; }
+  .loading.show { display: block; }
+  .spinner {
+    width: 60px; height: 60px;
+    border: 2px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 24px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--green); }
+  .loading-steps { margin-top: 16px; }
+  .loading-step {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--dim);
+    margin: 6px 0;
+    transition: color 0.3s;
+  }
+  .loading-step.active { color: var(--cyan); }
+  .loading-step.done { color: var(--green); }
+  .loading-step.done::before { content: '✓ '; }
+  .loading-step.active::before { content: '▶ '; }
+  .loading-step:not(.active):not(.done)::before { content: '  '; }
+
+  /* RESULTS */
+  .results { display: none; }
+  .results.show { display: block; }
+
+  .results-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .results-title { font-family: 'Orbitron', monospace; font-size: 20px; font-weight: 700; color: #fff; }
+  .results-time { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--dim); }
+
+  /* STATS GRID */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeIn 0.5s ease forwards;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .stat-card.green::before { background: var(--green); }
+  .stat-card.red::before { background: var(--red); }
+  .stat-card.yellow::before { background: var(--yellow); }
+  .stat-card.cyan::before { background: var(--cyan); }
+  .stat-label { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+  .stat-value { font-family: 'Orbitron', monospace; font-size: 32px; font-weight: 900; }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.red .stat-value { color: var(--red); }
+  .stat-card.yellow .stat-value { color: var(--yellow); }
+  .stat-card.cyan .stat-value { color: var(--cyan); }
+  .stat-sub { font-size: 12px; color: var(--dim); margin-top: 4px; font-weight: 300; }
+
+  /* RISK METER */
+  .risk-section { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 24px; margin-bottom: 24px; }
+  .risk-label { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--dim); letter-spacing: 2px; margin-bottom: 12px; }
+  .risk-bar { height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+  .risk-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+  .risk-score-text { font-family: 'Orbitron', monospace; font-size: 24px; font-weight: 700; }
+
+  /* ANOMALIES TABLE */
+  .section-title {
+    font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700;
+    color: var(--cyan); letter-spacing: 2px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .anomaly-list { margin-bottom: 32px; }
+  .anomaly-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--red);
+    border-radius: 2px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    animation: fadeIn 0.5s ease forwards;
+    display: grid; grid-template-columns: auto 1fr auto;
+    gap: 16px; align-items: start;
+  }
+  .anomaly-item.medium { border-left-color: var(--yellow); }
+  .anomaly-item.low { border-left-color: var(--cyan); }
+  .anomaly-num { font-family: 'Orbitron', monospace; font-size: 11px; color: var(--dim); padding-top: 2px; }
+  .anomaly-desc { font-size: 14px; color: var(--text); line-height: 1.5; }
+  .anomaly-row { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--dim); margin-top: 4px; }
+  .severity-badge {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px;
+    padding: 3px 8px; border-radius: 2px; white-space: nowrap;
+  }
+  .severity-high { background: rgba(255,59,92,0.15); color: var(--red); border: 1px solid var(--red); }
+  .severity-medium { background: rgba(255,214,0,0.15); color: var(--yellow); border: 1px solid var(--yellow); }
+  .severity-low { background: rgba(0,229,255,0.15); color: var(--cyan); border: 1px solid var(--cyan); }
+
+  /* ANALYSIS TEXT */
+  .analysis-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 32px;
+  }
+  .analysis-text { font-size: 14px; line-height: 1.8; color: var(--text); white-space: pre-wrap; font-weight: 300; }
+
+  /* DATA PREVIEW */
+  .data-preview { overflow-x: auto; margin-bottom: 32px; }
+  .data-table {
+    width: 100%; border-collapse: collapse;
+    font-family: 'Share Tech Mono', monospace; font-size: 12px;
+  }
+  .data-table th {
+    background: var(--surface2); color: var(--cyan);
+    padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border);
+    letter-spacing: 1px; white-space: nowrap;
+  }
+  .data-table td {
+    padding: 8px 14px; border-bottom: 1px solid var(--border);
+    color: var(--text); white-space: nowrap;
+  }
+  .data-table tr:hover td { background: rgba(0,229,255,0.03); }
+  .data-table tr.flagged td { background: rgba(255,59,92,0.05); }
+  .data-table tr.flagged td:first-child { border-left: 2px solid var(--red); }
+
+  /* RESET BTN */
+  .btn-reset {
+    background: transparent; border: 1px solid var(--dim);
+    color: var(--dim); padding: 12px 28px;
+    font-family: 'Orbitron', monospace; font-size: 11px; letter-spacing: 2px;
+    cursor: pointer; border-radius: 2px; transition: all 0.2s;
+    margin-bottom: 60px;
+  }
+  .btn-reset:hover { border-color: var(--text); color: var(--text); }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 0; text-align: center;
+    font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--dim);
+    letter-spacing: 1px;
+  }
+  footer span { color: var(--green); }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 14px 20px;
+    font-family: 'Share Tech Mono', monospace; font-size: 12px;
+    z-index: 9999; transform: translateY(100px); opacity: 0;
+    transition: all 0.3s; max-width: 340px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.ok { border-left: 3px solid var(--green); color: var(--green); }
+  .toast.err { border-left: 3px solid var(--red); color: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div class="logo-text">FRAUDFORGE</div>
+        <div class="logo-sub">Autonomous Data Swarm</div>
+      </div>
+    </div>
+    <div class="track-badge">TRACK B // QUANTITATIVE FORGE</div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <section class="hero">
+      <div class="hero-tag">AUTONOMOUS ANOMALY DETECTION SYSTEM</div>
+      <h1>Detect Fraud.<br><span>Instantly.</span></h1>
+      <p>Upload any CSV dataset. The AI swarm analyzes patterns, flags anomalies, and delivers a full risk assessment in seconds.</p>
+    </section>
+
+    <!-- API KEY -->
+    <div class="api-section">
+      <label>▸ GEMINI API KEY</label>
+      <div class="api-row">
+        <input type="password" id="api-key" placeholder="AIza..." />
+        <button class="btn-save" onclick="saveKey()">SAVE KEY</button>
+      </div>
+      <div class="api-status" id="api-status"></div>
+    </div>
+
+    <!-- UPLOAD -->
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
+      ondragover="event.preventDefault(); this.classList.add('drag')"
+      ondragleave="this.classList.remove('drag')"
+      ondrop="handleDrop(event)">
+      <div class="upload-icon">📂</div>
+      <div class="upload-title">DROP CSV FILE HERE</div>
+      <div class="upload-sub">Drag & drop or click to browse &nbsp;·&nbsp; <span>.csv files only</span></div>
+      <input type="file" id="file-input" accept=".csv" onchange="handleFile(event)" />
+    </div>
+
+    <div class="file-info" id="file-info">
+      <div class="file-dot"></div>
+      <div class="file-name" id="file-name">—</div>
+      <div class="file-meta" id="file-meta">—</div>
+    </div>
+
+    <button class="btn-analyze" id="btn-analyze" disabled onclick="analyze()">
+      <span class="btn-icon">🔍</span>
+      LAUNCH SWARM ANALYSIS
+    </button>
+
+    <!-- LOADING -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div class="loading-text">SWARM ACTIVE — ANALYZING DATA...</div>
+      <div class="loading-steps" id="loading-steps">
+        <div class="loading-step" id="step-1">Parsing CSV structure</div>
+        <div class="loading-step" id="step-2">Sending to Gemini AI</div>
+        <div class="loading-step" id="step-3">Detecting anomalies</div>
+        <div class="loading-step" id="step-4">Generating risk report</div>
+        <div class="loading-step" id="step-5">Finalizing output</div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="results" id="results">
+      <div class="results-header">
+        <div class="results-title">SWARM REPORT</div>
+        <div class="results-time" id="results-time">—</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card cyan">
+          <div class="stat-label">Total Rows</div>
+          <div class="stat-value" id="stat-rows">—</div>
+          <div class="stat-sub">records scanned</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">Anomalies Found</div>
+          <div class="stat-value" id="stat-anomalies">—</div>
+          <div class="stat-sub">flagged entries</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-label">Risk Score</div>
+          <div class="stat-value" id="stat-risk">—</div>
+          <div class="stat-sub">out of 100</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Confidence</div>
+          <div class="stat-value" id="stat-conf">—</div>
+          <div class="stat-sub">AI certainty</div>
+        </div>
+      </div>
+
+      <!-- Risk bar -->
+      <div class="risk-section">
+        <div class="risk-label">▸ OVERALL RISK LEVEL</div>
+        <div class="risk-bar"><div class="risk-fill" id="risk-fill" style="width:0%"></div></div>
+        <div class="risk-score-text" id="risk-score-text">—</div>
+      </div>
+
+      <!-- Anomalies -->
+      <div class="section-title">DETECTED ANOMALIES</div>
+      <div class="anomaly-list" id="anomaly-list"></div>
+
+      <!-- Full Analysis -->
+      <div class="section-title">FULL AI ANALYSIS</div>
+      <div class="analysis-box">
+        <div class="analysis-text" id="analysis-text">—</div>
+      </div>
+
+      <!-- Data Preview -->
+      <div class="section-title">DATA PREVIEW</div>
+      <div class="data-preview">
+        <table class="data-table" id="data-table"></table>
+      </div>
+
+      <button class="btn-reset" onclick="reset()">↺ NEW ANALYSIS</button>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <div>FRAUDFORGE &nbsp;·&nbsp; <span>TRACK B: QUANTITATIVE FORGE</span> &nbsp;·&nbsp; POWERED BY GEMINI 2.0 FLASH</div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let csvData = '';
+let parsedRows = [];
+let parsedHeaders = [];
+let apiKey = '';
+
+function saveKey() {
+  apiKey = document.getElementById('api-key').value.trim();
+  const status = document.getElementById('api-status');
+  if (!apiKey.startsWith('AIza')) {
+    status.textContent = '✗ Invalid key format. Should start with AIza...';
+    status.className = 'api-status err';
+    return;
+  }
+  status.textContent = '✓ API key saved for this session';
+  status.className = 'api-status ok';
+  toast('API key saved!', 'ok');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+}
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (file) loadFile(file);
+}
+
+function loadFile(file) {
+  if (!file.name.endsWith('.csv')) { toast('Please upload a .csv file', 'err'); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    csvData = e.target.result;
+    parseCSV(csvData);
+    document.getElementById('file-name').textContent = file.name;
+    document.getElementById('file-meta').textContent = `${(file.size/1024).toFixed(1)} KB · ${parsedRows.length} rows`;
+    document.getElementById('file-info').classList.add('show');
+    document.getElementById('btn-analyze').disabled = false;
+    toast('File loaded: ' + file.name, 'ok');
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  parsedHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g,''));
+  parsedRows = lines.slice(1).map(line => {
+    const vals = line.split(',').map(v => v.trim().replace(/"/g,''));
+    const obj = {};
+    parsedHeaders.forEach((h, i) => obj[h] = vals[i] || '');
+    return obj;
+  });
+}
+
+function setLoadingStep(active) {
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('step-' + i);
+    if (i < active) { el.className = 'loading-step done'; }
+    else if (i === active) { el.className = 'loading-step active'; }
+    else { el.className = 'loading-step'; }
+  }
+}
+
+async function analyze() {
+  if (!apiKey) { toast('Please enter your Gemini API key first!', 'err'); return; }
+  if (!csvData) { toast('Please upload a CSV file first!', 'err'); return; }
+
+  document.getElementById('btn-analyze').disabled = true;
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('results').classList.remove('show');
+
+  const startTime = Date.now();
+  setLoadingStep(1);
+
+  // Prepare data sample (max 100 rows to keep prompt manageable)
+  const sample = parsedRows.slice(0, 100);
+  const sampleText = [parsedHeaders.join(','), ...sample.map(r => parsedHeaders.map(h => r[h]).join(','))].join('\n');
+
+  setLoadingStep(2);
+
+  const prompt = `You are a fraud detection AI agent. Analyze this CSV data and detect anomalies, fraud patterns, and suspicious entries.
+
+CSV DATA (${parsedRows.length} total rows, showing up to 100):
+${sampleText}
+
+Respond ONLY with a valid JSON object (no markdown, no backticks) in this exact format:
+{
+  "summary": "2-3 sentence executive summary of findings",
+  "risk_score": <integer 0-100>,
+  "confidence": "<percentage like 87%>",
+  "total_anomalies": <integer>,
+  "anomalies": [
+    {
+      "row": "<row number or range>",
+      "description": "clear description of the anomaly",
+      "severity": "HIGH" or "MEDIUM" or "LOW",
+      "field": "<which column/field is suspicious>"
+    }
+  ],
+  "patterns": "detailed paragraph about fraud patterns detected, statistical observations, and recommendations",
+  "flagged_rows": [<array of row index numbers that are suspicious, 0-based>]
+}
+
+Be thorough. Look for: duplicate entries, outlier values, impossible values, suspicious patterns, missing data, statistical anomalies, round-number bias, velocity patterns, etc.`;
+
+  setLoadingStep(3);
+
+  try {
+    const response = await fetch(
+      'http://localhost:8181/chat',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: prompt }]
+        })
+      }
+    );
+
+    setLoadingStep(4);
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || 'API error ' + response.status);
+    }
+
+    const data = await response.json();
+    const raw = data.choices?.[0]?.message?.content || '';
+
+    setLoadingStep(5);
+
+    // Parse JSON (strip any accidental markdown)
+    let clean = raw.replace(/```json|```/g, '').trim();
+    // Find JSON object
+    const start = clean.indexOf('{');
+    const end = clean.lastIndexOf('}');
+    if (start === -1 || end === -1) throw new Error('No JSON in response');
+    clean = clean.slice(start, end + 1);
+
+    const result = JSON.parse(clean);
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    renderResults(result, elapsed);
+
+  } catch (err) {
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('btn-analyze').disabled = false;
+    toast('Error: ' + err.message, 'err');
+    console.error(err);
+  }
+}
+
+function renderResults(r, elapsed) {
+  document.getElementById('loading').classList.remove('show');
+  document.getElementById('results').classList.add('show');
+  document.getElementById('results-time').textContent = `Completed in ${elapsed}s · ${new Date().toLocaleTimeString()}`;
+
+  // Stats
+  document.getElementById('stat-rows').textContent = parsedRows.length;
+  document.getElementById('stat-anomalies').textContent = r.total_anomalies || r.anomalies?.length || 0;
+  document.getElementById('stat-risk').textContent = r.risk_score;
+  document.getElementById('stat-conf').textContent = r.confidence;
+
+  // Risk bar
+  const score = r.risk_score || 0;
+  const fill = document.getElementById('risk-fill');
+  fill.style.width = score + '%';
+  if (score >= 70) { fill.style.background = 'var(--red)'; document.getElementById('risk-score-text').style.color = 'var(--red)'; }
+  else if (score >= 40) { fill.style.background = 'var(--yellow)'; document.getElementById('risk-score-text').style.color = 'var(--yellow)'; }
+  else { fill.style.background = 'var(--green)'; document.getElementById('risk-score-text').style.color = 'var(--green)'; }
+  document.getElementById('risk-score-text').textContent = score + '/100 — ' + (score >= 70 ? 'HIGH RISK' : score >= 40 ? 'MEDIUM RISK' : 'LOW RISK');
+
+  // Anomalies
+  const list = document.getElementById('anomaly-list');
+  list.innerHTML = '';
+  if (r.anomalies && r.anomalies.length > 0) {
+    r.anomalies.forEach((a, i) => {
+      const sev = (a.severity || 'LOW').toLowerCase();
+      list.innerHTML += `
+        <div class="anomaly-item ${sev}" style="animation-delay:${i*0.05}s">
+          <div class="anomaly-num">#${String(i+1).padStart(2,'0')}</div>
+          <div>
+            <div class="anomaly-desc">${a.description}</div>
+            <div class="anomaly-row">Row: ${a.row} &nbsp;·&nbsp; Field: ${a.field || '—'}</div>
+          </div>
+          <div class="severity-badge severity-${sev}">${a.severity}</div>
+        </div>`;
+    });
+  } else {
+    list.innerHTML = '<div style="color:var(--green);font-family:\'Share Tech Mono\',monospace;font-size:13px;padding:20px">✓ No significant anomalies detected</div>';
+  }
+
+  // Full analysis
+  document.getElementById('analysis-text').textContent =
+    (r.summary ? r.summary + '\n\n' : '') + (r.patterns || '');
+
+  // Data table preview (first 20 rows)
+  const flagged = new Set(r.flagged_rows || []);
+  const table = document.getElementById('data-table');
+  const headers = parsedHeaders.slice(0, 8); // max 8 cols
+  let html = '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+  parsedRows.slice(0, 20).forEach((row, i) => {
+    html += `<tr class="${flagged.has(i) ? 'flagged' : ''}">`;
+    html += headers.map(h => `<td>${row[h] || ''}</td>`).join('');
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+
+  toast('Analysis complete!', 'ok');
+  document.getElementById('btn-analyze').disabled = false;
+}
+
+function reset() {
+  csvData = ''; parsedRows = []; parsedHeaders = [];
+  document.getElementById('file-info').classList.remove('show');
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('btn-analyze').disabled = true;
+  document.getElementById('file-input').value = '';
+  toast('Ready for new analysis', 'ok');
+}
+
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
